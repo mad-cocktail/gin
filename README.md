@@ -1,6 +1,8 @@
 Guard in
 ========
 
+It is a tiny parse transform.
+
 Example 1
 ---------
 
@@ -107,4 +109,17 @@ otp_7198_scan(<<N, Z, Rest/binary>>, TokAcc)
     when in(N, "Nn") and in(Z, "\s()") ->
     otp_7198_scan(<<Z, Rest/binary>>, ['NOT' | TokAcc]);
 ...
+```
+
+
+This code is valid:
+
+```erlang
+valid(X, Y) when in(X, [1,2,3,Y]) -> ok.
+```
+
+This code is invalid:
+
+```erlang
+invalid(X, Y) when in(X, Y) -> error.
 ```
