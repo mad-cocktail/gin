@@ -1,0 +1,7 @@
+{application, gin,
+ [
+  {description, ""},
+  {vsn, git},
+  {registered, []},
+  {env, []}
+ ]}.

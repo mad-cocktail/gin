@@ -1,0 +1,12 @@
+ebin/*
+deps/*
+*.swp
+*.dump
+*.trace  
+.eunit
+.emark
+doc/README.md
+.~*
+*.un~
+c_cov
+fprof.trace
