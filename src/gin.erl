@@ -7,8 +7,15 @@ in_trans(AppNode) ->
     New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
     %% Extract arguments of the `in' function.
     [SubjectForm, ListForm] = erl_syntax:application_arguments(AppNode),
-    %% Extract the list of the valid values.
-    Elems = erl_syntax:list_elements(ListForm),
+    Elems =
+        case erl_syntax:type(ListForm) of
+        string ->
+            Str = erl_syntax:string_value(ListForm),
+            [erl_syntax:char(C) || C <- Str];
+        list ->
+            %% Extract the list of the valid values.
+            erl_syntax:list_elements(ListForm)
+        end,
     case Elems of
     [] ->
         %% Always `false'.
@@ -34,15 +41,15 @@ parse_transform(Forms, _Options) ->
 
 postorder(F, Form) ->
     NewTree =
-    case erl_syntax:subtrees(Form) of
-    [] ->
-        Form;
-    List ->
-        Groups = [handle_group(F, Group) || Group <- List],
-        Tree2 = erl_syntax:update_tree(Form, Groups),
-        Form2 = erl_syntax:revert(Tree2),
-        Form2
-    end,
+        case erl_syntax:subtrees(Form) of
+        [] ->
+            Form;
+        List ->
+            Groups = [handle_group(F, Group) || Group <- List],
+            Tree2 = erl_syntax:update_tree(Form, Groups),
+            Form2 = erl_syntax:revert(Tree2),
+            Form2
+        end,
     F(NewTree).
 
 
