@@ -93,6 +93,17 @@ otp_7198_scan(<<N, Z, Rest/binary>>, TokAcc) when
                         (N =:= $N orelse N =:= $n) and
                         ((Z =:= $\s) or (Z =:= $() or (Z =:= $))) ->
         otp_7198_scan(<<Z, Rest/binary>>, ['NOT' | TokAcc]);
+
+otp_7198_scan(<<C, Rest/binary>>, TokAcc) when
+                                (C >= $A) and (C =< $Z);
+                                (C >= $a) and (C =< $z);
+                                (C >= $0) and (C =< $9) ->
+        case Rest of
+                <<$:, R/binary>> ->
+                        otp_7198_scan(R, [{'FIELD', C} | TokAcc]);
+                _ ->
+                        otp_7198_scan(Rest, [{'KEYWORD', C} | TokAcc])
+        end.
 ...
 ```
 
@@ -114,7 +125,24 @@ otp_7198_scan(<<D>>, TokAcc) when in(D, "Dd") ->
 otp_7198_scan(<<N, Z, Rest/binary>>, TokAcc)
     when in(N, "Nn") and in(Z, "\s()") ->
     otp_7198_scan(<<Z, Rest/binary>>, ['NOT' | TokAcc]);
+
+otp_7198_scan(<<C, Rest/binary>>, TokAcc)
+    when beetween(C, $A, $Z); beetween(C, $a, $z); beetween(C, $0, $9) ->
+    case Rest of
+        <<$:, R/binary>> ->
+            otp_7198_scan(R, [{'FIELD', C} | TokAcc]);
+        _ ->
+            otp_7198_scan(Rest, [{'KEYWORD', C} | TokAcc])
+    end.
+
 ...
+```
+
+We used `beetween(Subject, From, To)` here.
+It emalates the next macros:
+
+```erlang
+-define(BEETWEEN(S, S, E), (((C) >= (S)) andalso ((C) =< (E))).
 ```
 
 

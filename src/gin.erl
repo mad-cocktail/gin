@@ -30,10 +30,37 @@ in_trans(AppNode) ->
         GuardAST = New(erl_syntax:parentheses(lists:foldl(F, X, Xs))),
         erl_syntax:revert(GuardAST)
     end.
-    
+
+
+beetween_trans(AppNode) ->
+    Pos = erl_syntax:get_pos(AppNode),
+    %% Call it fore all new nodes.
+    New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
+    %% Extract arguments of the `in' function.
+    [SubjectForm, FromForm, ToForm] = 
+        erl_syntax:application_arguments(AppNode),
+    GtEqOp = New(erl_syntax:operator('>=')),
+    LoEqOp = New(erl_syntax:operator('=<')),
+    AndOp  = New(erl_syntax:operator('andalso')),
+    Exp1 = New(erl_syntax:infix_expr(SubjectForm, GtEqOp, FromForm)),
+    Exp2 = New(erl_syntax:infix_expr(SubjectForm, LoEqOp, ToForm)),
+    Exp3 = New(erl_syntax:infix_expr(Exp1, AndOp, Exp2)),
+    GuardAST = New(erl_syntax:parentheses(Exp3)),
+    erl_syntax:revert(GuardAST).
+
+
+oneof_function(Fs) ->
+    fun(Node) ->
+        Apply = fun(F, N) -> F(N) end,
+        lists:foldl(Apply, Node, Fs)
+    end.
+
 
 parse_transform(Forms, _Options) ->
-    F = local_function(in, 2, fun in_trans/1),
+    io:format(user, "Before:\t~p\n\n", [Forms]),
+    F1 = local_function(in, 2, fun in_trans/1),
+    F2 = local_function(beetween, 3, fun beetween_trans/1),
+    F  = oneof_function([F1, F2]),
     X = [postorder(F, Tree) || Tree <- Forms],
 %   io:format(user, "Before:\t~p\n\nAfter:\t~p\n", [Forms, X]),
     X.

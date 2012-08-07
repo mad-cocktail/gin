@@ -52,6 +52,10 @@ twice(X, Y) when in(X, [1,2,3]), in(Y, [5,6,7]) ->
 twice(_X, _Y) ->
     false.
 
+range_fun(X, Y) when beetween(X, 1, 3), beetween(Y, 5, 7) ->
+    true;
+range_fun(_X, _Y) ->
+    false.
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -95,6 +99,19 @@ twice_test_() ->
     , ?_assertNot(twice(5, 1))
     , ?_assertNot(twice(0, 0))
     , ?_assertNot(twice(5, 1))
+    ].
+
+
+beetween_test_() ->
+    [ ?_assert(range_fun(1, 5))
+    , ?_assert(range_fun(2, 5))
+    , ?_assert(range_fun(2, 5))
+    , ?_assertNot(range_fun(5, 5))
+    , ?_assertNot(range_fun(2, 0))
+    , ?_assertNot(range_fun(2, 1))
+    , ?_assertNot(range_fun(5, 1))
+    , ?_assertNot(range_fun(0, 0))
+    , ?_assertNot(range_fun(5, 1))
     ].
 
 -endif.
