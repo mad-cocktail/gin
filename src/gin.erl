@@ -1,7 +1,16 @@
 -module(gin).
 -export([parse_transform/2]).
 
-in_trans(AppNode) ->
+parse_transform(Forms, _Options) ->
+    F1 = local_function(in, 2, fun in_transform/1),
+    F2 = local_function(beetween, 3, fun beetween_transform/1),
+    F  = oneof_function([F1, F2, fun erl_syntax:revert/1]),
+    X = [erl_syntax_lib:map(F, Tree) || Tree <- Forms],
+%   io:format(user, "Before:\t~p\n\nAfter:\t~p\n", [Forms, X]),
+    X.
+
+
+in_transform(AppNode) ->
     Pos = erl_syntax:get_pos(AppNode),
     %% Call it fore all new nodes.
     New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
@@ -32,7 +41,7 @@ in_trans(AppNode) ->
     end.
 
 
-beetween_trans(AppNode) ->
+beetween_transform(AppNode) ->
     Pos = erl_syntax:get_pos(AppNode),
     %% Call it fore all new nodes.
     New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
@@ -56,30 +65,6 @@ oneof_function(Fs) ->
     end.
 
 
-parse_transform(Forms, _Options) ->
-    io:format(user, "Before:\t~p\n\n", [Forms]),
-    F1 = local_function(in, 2, fun in_trans/1),
-    F2 = local_function(beetween, 3, fun beetween_trans/1),
-    F  = oneof_function([F1, F2]),
-    X = [postorder(F, Tree) || Tree <- Forms],
-%   io:format(user, "Before:\t~p\n\nAfter:\t~p\n", [Forms, X]),
-    X.
-
-
-postorder(F, Form) ->
-    NewTree =
-        case erl_syntax:subtrees(Form) of
-        [] ->
-            Form;
-        List ->
-            Groups = [handle_group(F, Group) || Group <- List],
-            Tree2 = erl_syntax:update_tree(Form, Groups),
-            Form2 = erl_syntax:revert(Tree2),
-            Form2
-        end,
-    F(NewTree).
-
-
 local_function(FunName, FunArity, TransFun) ->
     fun(Node) ->
         IsFun = erl_syntax:type(Node) =:= application
@@ -98,7 +83,3 @@ always(_) -> true.
 
 application_arity(AppNode) ->
     length(erl_syntax:application_arguments(AppNode)).
-        
-    
-handle_group(F, Group) ->
-    [postorder(F, Subtree) || Subtree <- Group].
