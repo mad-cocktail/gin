@@ -17,15 +17,27 @@ after_check_fun(_X) ->
     false.
 
 
-after_numeric_check_fun(X) when numeric_in(X, [1, 2, 3]) ->
+not_in(X) when not in(X, [1, 2, 3]) ->
     true;
-after_numeric_check_fun(_X) ->
+not_in(_X) ->
+    false.
+
+
+numeric_not_in(X) when not numeric_in(X, [1, 2, 3]) ->
+    true;
+numeric_not_in(_X) ->
     false.
 
 
 before_numeric_check_fun(X) when X == 1 orelse X == 2 orelse X == 3 ->
     true;
 before_numeric_check_fun(_X) ->
+    false.
+
+
+after_numeric_check_fun(X) when numeric_in(X, [1, 2, 3]) ->
+    true;
+after_numeric_check_fun(_X) ->
     false.
 
 
@@ -91,6 +103,26 @@ after_numeric_check_fun_test_() ->
     , ?_assert(after_numeric_check_fun(1.0))
     , ?_assert(after_numeric_check_fun(2.0))
     , ?_assertNot(after_numeric_check_fun(4.0))
+    ].
+
+not_in_test_() ->
+    [ ?_assertNot(not_in(1))
+    , ?_assertNot(not_in(2))
+    , ?_assertNot(not_in(3))
+    , ?_assert(not_in(4))
+    , ?_assert(not_in(1.0))
+    , ?_assert(not_in(2.0))
+    , ?_assert(not_in(4.0))
+    ].
+
+numeric_not_in_test_() ->
+    [ ?_assertNot(numeric_not_in(1))
+    , ?_assertNot(numeric_not_in(2))
+    , ?_assertNot(numeric_not_in(3))
+    , ?_assert(numeric_not_in(4))
+    , ?_assertNot(numeric_not_in(1.0))
+    , ?_assertNot(numeric_not_in(2.0))
+    , ?_assert(numeric_not_in(4.0))
     ].
 
 after_check_if_test_() ->
