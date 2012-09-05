@@ -11,12 +11,15 @@ parse_transform(Forms, _Options) ->
     X.
 
 
+%% ==================================================================
+%% In
+%% ==================================================================
+
 %% It is curry for `in_transform'.
 in_transform(Op) ->
     fun(Node) ->
         in_transform(Op, Node)
         end.
-
 
 -spec in_transform(Op, Node) -> Node when
     Op :: '==' | '=:=',
@@ -53,6 +56,10 @@ in_transform(Op, Node) ->
     end.
 
 
+%% ==================================================================
+%% Beetween
+%% ==================================================================
+
 beetween_transform(Node) ->
     Pos = erl_syntax:get_pos(Node),
     %% Call it fore all new nodes.
@@ -60,14 +67,33 @@ beetween_transform(Node) ->
     %% Extract arguments of the `in' function.
     [SubjectForm, FromForm, ToForm] = 
         erl_syntax:application_arguments(Node),
-    GtEqOp = New(erl_syntax:operator('>=')),
-    LoEqOp = New(erl_syntax:operator('=<')),
+    GtEqOp = New(erl_syntax:operator(greater(is_excluded(FromForm)))),
+    LoEqOp = New(erl_syntax:operator(less(is_excluded(ToForm)))),
     AndOp  = New(erl_syntax:operator('andalso')),
-    Exp1 = New(erl_syntax:infix_expr(SubjectForm, GtEqOp, FromForm)),
-    Exp2 = New(erl_syntax:infix_expr(SubjectForm, LoEqOp, ToForm)),
+    Exp1 = New(erl_syntax:infix_expr(SubjectForm, GtEqOp, clean_excluded(FromForm))),
+    Exp2 = New(erl_syntax:infix_expr(SubjectForm, LoEqOp, clean_excluded(ToForm))),
     Exp3 = New(erl_syntax:infix_expr(Exp1, AndOp, Exp2)),
     GuardAST = New(erl_syntax:parentheses(Exp3)),
     erl_syntax:revert(GuardAST).
+
+less(true)  -> '<';
+less(false) -> '=<'.
+
+greater(true)  -> '>';
+greater(false) -> '>='.
+
+is_excluded(Node) ->
+    is_local_function(exclude, 1, Node).
+
+clean_excluded(Node) ->
+    case is_excluded(Node) of
+        true ->  head(erl_syntax:application_arguments(Node));
+        false -> Node
+    end.
+
+head([H|_]) -> H.
+
+
 
 
 oneof_function(Fs) ->
@@ -79,17 +105,19 @@ oneof_function(Fs) ->
 
 local_function(FunName, FunArity, TransFun) ->
     fun(Node) ->
-        IsFun = erl_syntax:type(Node) =:= application
-            andalso always(Op = erl_syntax:application_operator(Node))
-            andalso erl_syntax:type(Op) =:= atom
-            andalso erl_syntax:atom_value(Op) =:= FunName
-            andalso application_arity(Node) =:= FunArity,
-            
+        IsFun = is_local_function(FunName, FunArity, Node),
         if IsFun -> TransFun(Node);
             true -> Node
             end
         end.
-        
+
+is_local_function(FunName, FunArity, Node) -> 
+    erl_syntax:type(Node) =:= application
+        andalso always(Op = erl_syntax:application_operator(Node))
+        andalso erl_syntax:type(Op) =:= atom
+        andalso erl_syntax:atom_value(Op) =:= FunName
+        andalso application_arity(Node) =:= FunArity.
+
 always(_) -> true.
 
 

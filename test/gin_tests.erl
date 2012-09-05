@@ -75,10 +75,19 @@ twice(X, Y) when in(X, [1,2,3]), in(Y, [5,6,7]) ->
     true;
 twice(_X, _Y) ->
     false.
+ 
 
 range_fun(X, Y) when beetween(X, 1, 3), beetween(Y, 5, 7) ->
     true;
 range_fun(_X, _Y) ->
+    false.
+
+
+ex_range_fun(X, Y) when 
+        beetween(X, exclude(1), 3), 
+        beetween(Y, exclude(5), exclude(7)) ->
+    true;
+ex_range_fun(_X, _Y) ->
     false.
 
 -include_lib("eunit/include/eunit.hrl").
@@ -149,7 +158,6 @@ as_string_fun_test_() ->
 twice_test_() ->
     [ ?_assert(twice(1, 5))
     , ?_assert(twice(2, 5))
-    , ?_assert(twice(2, 5))
     , ?_assertNot(twice(5, 5))
     , ?_assertNot(twice(2, 0))
     , ?_assertNot(twice(2, 1))
@@ -160,15 +168,27 @@ twice_test_() ->
 
 
 beetween_test_() ->
-    [ ?_assert(range_fun(1, 5))
-    , ?_assert(range_fun(2, 5))
-    , ?_assert(range_fun(2, 5))
+    %% X in [1,3]; X in [5,7]
+    [ ?_assert   (range_fun(1, 5))
+    , ?_assert   (range_fun(2, 5))
+    , ?_assert   (range_fun(3, 5))
     , ?_assertNot(range_fun(5, 5))
+    , ?_assertNot(range_fun(5, 6))
     , ?_assertNot(range_fun(2, 0))
     , ?_assertNot(range_fun(2, 1))
     , ?_assertNot(range_fun(5, 1))
     , ?_assertNot(range_fun(0, 0))
     , ?_assertNot(range_fun(5, 1))
+    ].
+
+ex_range_fun_test_() ->
+    %% X in (1,3]; X in (5,7)
+    [ ?_assertNot(ex_range_fun(1, 5))
+    , ?_assertNot(ex_range_fun(2, 5))
+    , ?_assertNot(ex_range_fun(3, 5))
+    , ?_assertNot(ex_range_fun(1, 6))
+    , ?_assert   (ex_range_fun(2, 6))
+    , ?_assert   (ex_range_fun(3, 6))
     ].
 
 -endif.
