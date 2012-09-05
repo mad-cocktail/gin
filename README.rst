@@ -86,7 +86,60 @@ After:
     maybe_change_depth(Depth, _) ->
       Depth.
 
+
 Example 3
+---------
+
+From `here <https://github.com/Eonblast/Emysql/blob/master/src/emysql_tcp.erl>`_.
+
+Before:
+
+.. code-block:: erlang
+
+    type_cast_row_data(Data, #field{type=Type})
+    when Type == ?FIELD_TYPE_VARCHAR;
+    Type == ?FIELD_TYPE_TINY_BLOB;
+    Type == ?FIELD_TYPE_MEDIUM_BLOB;
+    Type == ?FIELD_TYPE_LONG_BLOB;
+    Type == ?FIELD_TYPE_BLOB;
+    Type == ?FIELD_TYPE_VAR_STRING;
+    Type == ?FIELD_TYPE_STRING ->
+    Data;
+
+    type_cast_row_data(Data, #field{type=Type})
+    when Type == ?FIELD_TYPE_TINY;
+    Type == ?FIELD_TYPE_SHORT;
+    Type == ?FIELD_TYPE_LONG;
+    Type == ?FIELD_TYPE_LONGLONG;
+    Type == ?FIELD_TYPE_INT24;
+    Type == ?FIELD_TYPE_YEAR ->
+    list_to_integer(binary_to_list(Data));
+
+    ...
+
+
+Type cannot be a floated value, use ``=:=`` for comparation.
+
+After:
+
+.. code-block:: erlang
+
+    type_cast_row_data(Data, #field{type=Type}) when
+        in(Type, [?FIELD_TYPE_VARCHAR,      ?FIELD_TYPE_TINY_BLOB, 
+                  ?FIELD_TYPE_MEDIUM_BLOB,  ?FIELD_TYPE_LONG_BLOB, 
+                  ?FIELD_TYPE_BLOB,         ?FIELD_TYPE_VAR_STRING, 
+                  ?FIELD_TYPE_STRING]) ->
+    Data;
+
+    type_cast_row_data(Data, #field{type=Type}) when 
+        in(Type, [?FIELD_TYPE_TINY,     ?FIELD_TYPE_SHORT,  ?FIELD_TYPE_LONG,
+                  ?FIELD_TYPE_LONGLONG, ?FIELD_TYPE_INT24,  ?FIELD_TYPE_YEAR] ->
+    list_to_integer(binary_to_list(Data));
+
+    ...
+
+
+Example 4
 ---------
 
 Before:
