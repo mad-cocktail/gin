@@ -17,6 +17,18 @@ after_check_fun(_X) ->
     false.
 
 
+after_numeric_check_fun(X) when numeric_in(X, [1, 2, 3]) ->
+    true;
+after_numeric_check_fun(_X) ->
+    false.
+
+
+before_numeric_check_fun(X) when X == 1 orelse X == 2 orelse X == 3 ->
+    true;
+before_numeric_check_fun(_X) ->
+    false.
+
+
 after_check_case(X) ->
     case X of 
         X when in(X, [1, 2, 3]) ->
@@ -66,6 +78,19 @@ after_check_fun_test_() ->
     , ?_assert(after_check_fun(2))
     , ?_assert(after_check_fun(3))
     , ?_assertNot(after_check_fun(4))
+    , ?_assertNot(after_check_fun(1.0))
+    , ?_assertNot(after_check_fun(2.0))
+    , ?_assertNot(after_check_fun(4.0))
+    ].
+
+after_numeric_check_fun_test_() ->
+    [ ?_assert(after_numeric_check_fun(1))
+    , ?_assert(after_numeric_check_fun(2))
+    , ?_assert(after_numeric_check_fun(3))
+    , ?_assertNot(after_numeric_check_fun(4))
+    , ?_assert(after_numeric_check_fun(1.0))
+    , ?_assert(after_numeric_check_fun(2.0))
+    , ?_assertNot(after_numeric_check_fun(4.0))
     ].
 
 after_check_if_test_() ->

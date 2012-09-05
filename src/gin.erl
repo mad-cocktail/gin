@@ -2,20 +2,32 @@
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Options) ->
-    F1 = local_function(in, 2, fun in_transform/1),
-    F2 = local_function(beetween, 3, fun beetween_transform/1),
-    F  = oneof_function([F1, F2, fun erl_syntax:revert/1]),
+    F1 = local_function(numeric_in, 2, in_transform('==')),
+    F2 = local_function(in, 2, in_transform('=:=')),
+    F3 = local_function(beetween, 3, fun beetween_transform/1),
+    F  = oneof_function([F1, F2, F3, fun erl_syntax:revert/1]),
     X = [erl_syntax_lib:map(F, Tree) || Tree <- Forms],
 %   io:format(user, "Before:\t~p\n\nAfter:\t~p\n", [Forms, X]),
     X.
 
 
-in_transform(AppNode) ->
-    Pos = erl_syntax:get_pos(AppNode),
+%% It is curry for `in_transform'.
+in_transform(Op) ->
+    fun(Node) ->
+        in_transform(Op, Node)
+        end.
+
+
+-spec in_transform(Op, Node) -> Node when
+    Op :: '==' | '=:=',
+    Node :: erl_syntax_lib:syntaxTree().
+
+in_transform(Op, Node) ->
+    Pos = erl_syntax:get_pos(Node),
     %% Call it fore all new nodes.
     New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
     %% Extract arguments of the `in' function.
-    [SubjectForm, ListForm] = erl_syntax:application_arguments(AppNode),
+    [SubjectForm, ListForm] = erl_syntax:application_arguments(Node),
     Elems =
         case erl_syntax:type(ListForm) of
         string ->
@@ -31,7 +43,7 @@ in_transform(AppNode) ->
         New(erl_syntax:atom(false));
     
     _  ->
-        EqOp = New(erl_syntax:operator('=:=')),
+        EqOp = New(erl_syntax:operator(Op)),
         OrOp = New(erl_syntax:operator('orelse')),
         %% `X' is `Subject =:= Xs'.
         [X|Xs] = [New(erl_syntax:infix_expr(E, EqOp, SubjectForm)) || E <- Elems],
@@ -41,13 +53,13 @@ in_transform(AppNode) ->
     end.
 
 
-beetween_transform(AppNode) ->
-    Pos = erl_syntax:get_pos(AppNode),
+beetween_transform(Node) ->
+    Pos = erl_syntax:get_pos(Node),
     %% Call it fore all new nodes.
     New = fun(NewNode) -> erl_syntax:set_pos(NewNode, Pos) end,
     %% Extract arguments of the `in' function.
     [SubjectForm, FromForm, ToForm] = 
-        erl_syntax:application_arguments(AppNode),
+        erl_syntax:application_arguments(Node),
     GtEqOp = New(erl_syntax:operator('>=')),
     LoEqOp = New(erl_syntax:operator('=<')),
     AndOp  = New(erl_syntax:operator('andalso')),
@@ -81,5 +93,5 @@ local_function(FunName, FunArity, TransFun) ->
 always(_) -> true.
 
 
-application_arity(AppNode) ->
-    length(erl_syntax:application_arguments(AppNode)).
+application_arity(Node) ->
+    length(erl_syntax:application_arguments(Node)).

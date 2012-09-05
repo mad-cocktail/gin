@@ -13,6 +13,19 @@ It is a tiny parse transform.
     :target: http://travis-ci.org/mad-cocktail/gin
 
 
+.. code-block:: erlang
+
+    > in(1, [1]).
+    true
+    > numeric_in(1, [1]).
+    true
+    > in(1, [1.0]).
+    false
+    > numeric_in(1, [1.0]).
+    true
+    > numeric_in({1}, [{1.0}]).
+    true
+
 Example 1
 ---------
 
