@@ -5,7 +5,7 @@ parse_transform(Forms, _Options) ->
     F1 = local_function(numeric_in, 2, in_transform('==')),
     F2 = local_function(in, 2, in_transform('=:=')),
     F3 = local_function(beetween, 3, fun beetween_transform/1),
-    F  = oneof_function([F1, F2, F3, fun erl_syntax:revert/1]),
+    F  = foldl_functions([F1, F2, F3, fun erl_syntax:revert/1]),
     X = [erl_syntax_lib:map(F, Tree) || Tree <- Forms],
 %   io:format(user, "Before:\t~p\n\nAfter:\t~p\n", [Forms, X]),
     X.
@@ -15,12 +15,18 @@ parse_transform(Forms, _Options) ->
 %% In
 %% ==================================================================
 
-%% It is curry for `in_transform'.
+%% It is curry (from Haskell) for `in_transform/2'.
 in_transform(Op) ->
     fun(Node) ->
         in_transform(Op, Node)
         end.
 
+
+%% @doc Replace `in(X, List)' with `(X =:= E1) andalso (X =:= E2)' 
+%%      when `List' is `[E1, E2]' and `Op' is `=:='.
+%%
+%%      The caller checks, that the function name is valid.
+%%      `in' can be any function, for example, `in2' is valid too.
 -spec in_transform(Op, Node) -> Node when
     Op :: '==' | '=:=',
     Node :: erl_syntax_lib:syntaxTree().
@@ -60,6 +66,13 @@ in_transform(Op, Node) ->
 %% Beetween
 %% ==================================================================
 
+%% @doc Transforms `beetween(Subject, From, To)'.
+%% Subject is a term, but usually it is a number.
+%% `From' and `To' can be wrapped with the `exclude(_)' call.
+%% It meand, that this value is not inluded in the interval.
+%%
+%% `beetween(X, F, T)' is replaced with `((X =< F) andalso (X >= T))'.
+%% `beetween(X, excluded(F), T)' is replaced with `((X < F) andalso (X >= T))'.
 beetween_transform(Node) ->
     Pos = erl_syntax:get_pos(Node),
     %% Call it fore all new nodes.
@@ -76,27 +89,40 @@ beetween_transform(Node) ->
     GuardAST = New(erl_syntax:parentheses(Exp3)),
     erl_syntax:revert(GuardAST).
 
+
+%% @doc Returns an operator name.
+-spec less(IsExcluded) -> Op when
+    IsExcluded :: boolean(), 
+    Op :: atom().
+
 less(true)  -> '<';
 less(false) -> '=<'.
+
+
+-spec greater(IsExcluded) -> Op when
+    IsExcluded :: boolean(), 
+    Op :: atom().
 
 greater(true)  -> '>';
 greater(false) -> '>='.
 
+%% @doc Return true, if `Node' is wrapped by `exclude(_)'.
 is_excluded(Node) ->
     is_local_function(exclude, 1, Node).
 
+
+%% @doc Convert the call of `exclude(Body)' to `Body'.
 clean_excluded(Node) ->
     case is_excluded(Node) of
         true ->  head(erl_syntax:application_arguments(Node));
         false -> Node
     end.
 
+
 head([H|_]) -> H.
 
 
-
-
-oneof_function(Fs) ->
+foldl_functions(Fs) ->
     fun(Node) ->
         Apply = fun(F, N) -> F(N) end,
         lists:foldl(Apply, Node, Fs)
@@ -111,6 +137,7 @@ local_function(FunName, FunArity, TransFun) ->
             end
         end.
 
+%% @doc Return `true', `Node' is a function call of the `FunName/FunArity' function.
 is_local_function(FunName, FunArity, Node) -> 
     erl_syntax:type(Node) =:= application
         andalso always(Op = erl_syntax:application_operator(Node))
@@ -121,5 +148,6 @@ is_local_function(FunName, FunArity, Node) ->
 always(_) -> true.
 
 
+%% @doc Return arity of the called function inside `Node'.
 application_arity(Node) ->
     length(erl_syntax:application_arguments(Node)).
