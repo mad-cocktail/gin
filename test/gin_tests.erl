@@ -84,8 +84,8 @@ range_fun(_X, _Y) ->
 
 
 ex_range_fun(X, Y) when 
-        beetween(X, exclude(1), 3), 
-        beetween(Y, exclude(5), exclude(7)) ->
+        beetween(X, open(1), 3), 
+        beetween(Y, open(5), open(7)) ->
     true;
 ex_range_fun(_X, _Y) ->
     false.

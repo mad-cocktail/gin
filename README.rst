@@ -1,5 +1,3 @@
-Guard in
-========
 
 It is a tiny parse transform.
 
@@ -13,6 +11,56 @@ It is a tiny parse transform.
     :target: http://travis-ci.org/mad-cocktail/gin
 
 
+Guard in
+========
+
+This operator checks, that ``X`` is one of the ``[A, B, C, ...]`` values
+(``Xs``).
+
+``Xs`` is a fixed-size list of variables.
+
+This operator and ``lists:member/2`` are simular, but the second one is
+a function, when ``in`` is just an advanced macro command.
+
+It is not possible to write using macros, because lists cannot be processed
+as a macro's argument.
+
+This code is valid:
+
+.. code-block:: erlang
+
+    valid(X, Y) when in(X, [1,2,3,Y]) -> ok.
+
+It will be replaced with:
+
+.. code-block:: erlang
+
+    valid(X, Y) when (X =:= 1 orelse X =:= 2 orelse X =:= 3 orelse X =:= Y) -> ok.
+
+
+This code is invalid, because we don't know the actual size of the ``Y``
+variable:
+
+.. code-block:: erlang
+
+    invalid(X, Y) when in(X, Y) -> error.
+
+
+The ``numeric_in`` uses the ``==`` operator:
+
+.. code-block:: erlang
+
+    valid(X, Y) when numeric_in(X, [1,2,3,Y]) -> ok.
+
+This code will be replaced with:
+
+.. code-block:: erlang
+
+    valid(X, Y) when (X == 1 orelse X == 2 orelse X == 3 orelse X == Y) -> ok.
+
+
+The next code block demonstrates the difference beetween ``in`` and ``numeric_in``:
+
 .. code-block:: erlang
 
     > in(1, [1]).
@@ -25,6 +73,29 @@ It is a tiny parse transform.
     true
     > numeric_in({1}, [{1.0}]).
     true
+    
+
+beetween operator
+=================
+
+``S`` and ``E`` are stand for ``Start`` and ``End``. ``X`` is a value to check.
+
+``beetween(X, S, E)`` checks, that ``X`` is inside the closed interval ``[S, E]``.
+The ``S`` and ``E`` endpoints are included.
+
+``beetween(X, open(S), open(E))`` checks, that ``X`` is inside the open interval ``(S, E)``.
+
+``beetween(X, open(S), E)`` checks, that ``X`` is inside the left-open interval ``(S, E]``.
+
+``beetween(X, S, open(E))`` checks, that ``X`` is inside the right-open interval ``[S, E)``.
+
+
+``beetween(X, S, E)`` emulates the next macros:
+
+.. code-block:: erlang
+
+    -define(BEETWEEN(X, S, E), (((X) >= (S)) andalso ((X) =< (E))).
+
 
 Example 1
 ---------
@@ -205,22 +276,3 @@ After:
         end.
 
     ...
-
-We used ``beetween(Subject, From, To)`` here. It emalates the next
-macros:
-
-.. code-block:: erlang
-
-    -define(BEETWEEN(S, S, E), (((C) >= (S)) andalso ((C) =< (E))).
-
-This code is valid:
-
-.. code-block:: erlang
-
-    valid(X, Y) when in(X, [1,2,3,Y]) -> ok.
-
-This code is invalid:
-
-.. code-block:: erlang
-
-    invalid(X, Y) when in(X, Y) -> error.

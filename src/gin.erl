@@ -66,13 +66,13 @@ in_transform(Op, Node) ->
 %% Beetween
 %% ==================================================================
 
-%% @doc Transforms `beetween(Subject, From, To)'.
+%% @doc Transforms `beetween(Subject, Start, To)'.
 %% Subject is a term, but usually it is a number.
-%% `From' and `To' can be wrapped with the `exclude(_)' call.
+%% `From' and `To' can be wrapped with the `open(_)' call.
 %% It meand, that this value is not inluded in the interval.
 %%
 %% `beetween(X, F, T)' is replaced with `((X =< F) andalso (X >= T))'.
-%% `beetween(X, excluded(F), T)' is replaced with `((X < F) andalso (X >= T))'.
+%% `beetween(X, open(F), T)' is replaced with `((X < F) andalso (X >= T))'.
 beetween_transform(Node) ->
     Pos = erl_syntax:get_pos(Node),
     %% Call it fore all new nodes.
@@ -80,11 +80,11 @@ beetween_transform(Node) ->
     %% Extract arguments of the `in' function.
     [SubjectForm, FromForm, ToForm] = 
         erl_syntax:application_arguments(Node),
-    GtEqOp = New(erl_syntax:operator(greater(is_excluded(FromForm)))),
-    LoEqOp = New(erl_syntax:operator(less(is_excluded(ToForm)))),
+    GtEqOp = New(erl_syntax:operator(greater(is_open(FromForm)))),
+    LoEqOp = New(erl_syntax:operator(less(is_open(ToForm)))),
     AndOp  = New(erl_syntax:operator('andalso')),
-    Exp1 = New(erl_syntax:infix_expr(SubjectForm, GtEqOp, clean_excluded(FromForm))),
-    Exp2 = New(erl_syntax:infix_expr(SubjectForm, LoEqOp, clean_excluded(ToForm))),
+    Exp1 = New(erl_syntax:infix_expr(SubjectForm, GtEqOp, clean_open(FromForm))),
+    Exp2 = New(erl_syntax:infix_expr(SubjectForm, LoEqOp, clean_open(ToForm))),
     Exp3 = New(erl_syntax:infix_expr(Exp1, AndOp, Exp2)),
     GuardAST = New(erl_syntax:parentheses(Exp3)),
     erl_syntax:revert(GuardAST).
@@ -106,20 +106,17 @@ less(false) -> '=<'.
 greater(true)  -> '>';
 greater(false) -> '>='.
 
-%% @doc Return true, if `Node' is wrapped by `exclude(_)'.
-is_excluded(Node) ->
-    is_local_function(exclude, 1, Node).
+%% @doc Return true, if `Node' is wrapped by `open(_)'.
+is_open(Node) ->
+    is_local_function(open, 1, Node).
 
 
-%% @doc Convert the call of `exclude(Body)' to `Body'.
-clean_excluded(Node) ->
-    case is_excluded(Node) of
-        true ->  head(erl_syntax:application_arguments(Node));
+%% @doc Convert the call of `open(Body)' to `Body'.
+clean_open(Node) ->
+    case is_open(Node) of
+        true ->  hd(erl_syntax:application_arguments(Node));
         false -> Node
     end.
-
-
-head([H|_]) -> H.
 
 
 foldl_functions(Fs) ->
