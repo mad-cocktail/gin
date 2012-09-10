@@ -38,12 +38,14 @@ It will be replaced with:
     valid(X, Y) when (X =:= 1 orelse X =:= 2 orelse X =:= 3 orelse X =:= Y) -> ok.
 
 
+
 This code is invalid, because we don't know the actual size of the ``Y``
 variable:
 
 .. code-block:: erlang
 
     invalid(X, Y) when in(X, Y) -> error.
+
 
 
 The ``numeric_in`` uses the ``==`` operator:
@@ -57,6 +59,7 @@ This code will be replaced with:
 .. code-block:: erlang
 
     valid(X, Y) when (X == 1 orelse X == 2 orelse X == 3 orelse X == Y) -> ok.
+
 
 
 The next code block demonstrates the difference beetween ``in`` and ``numeric_in``:
