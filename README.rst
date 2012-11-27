@@ -81,6 +81,8 @@ The next code block demonstrates the difference beetween ``in`` and ``numeric_in
 beetween operator
 =================
 
+This is a realization of `EEP-16 <http://www.erlang.org/eeps/eep-0016.html>`_. 
+
 ``S`` and ``E`` are stand for ``Start`` and ``End``. ``X`` is a value to check.
 
 ``beetween(X, S, E)`` checks, that ``X`` is inside the closed interval ``[S, E]``.
